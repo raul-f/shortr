@@ -6,7 +6,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongo = require('mongodb');
 const mongoose = require('mongoose');
-const dns = require('dns');
+const dns = require('dns').promises;
 const dotenv = require('dotenv');
 const cors = require('cors');
 
@@ -58,11 +58,34 @@ app.post('/', (req, res) => {
 
 app.post('/api/shorturl/new', (req, res) => {
 	// console.log(req.body);
-	checkAndCreate(req.body.url)
-	.then(result => {
-		console.log(result)
-		res.json({og_url: result.og_url, st_url: result.st_url});
+	let protocolRegEx = /^https?:\/\//;
+	let dnsURL = req.body.url.replace(protocolRegEx, '');
+	//console.log(dnsURL);
+	dns.lookup(dnsURL)
+	.then(data => console.log(`The lookup has been successful ${JSON.stringify(data)}`))
+	.then(empty => {
+		check(req.body.url)
+		.then(result => {
+			let shorturl = {};
+			[shorturl.data, shorturl.existence] = result;
+			console.log(`The check function has returned ${JSON.stringify(shorturl)}`);
+			if (shorturl.existence) {
+				res.json({
+					message: `This url already exists! It\'s at ${shorturl.data.st_url}`, 
+					short_url: shorturl.data.st_url
+				});
+			} else {
+				res.json({original_url: shorturl.data.og_url, short_url: shorturl.data.st_url});
+			}
+			
+		});
+	})
+	.catch(err => {
+		console.log(`The lookup has returned an error: ${err}`);
+		res.json({error: 'invalid URL'});
 	});
+	/*
+	*/
 	/*
 	StURL.find({og_url: req.body.url}, (err, data) => {
 		if (err) {
@@ -78,8 +101,9 @@ app.post('/api/shorturl/new', (req, res) => {
 
 // receive shorturl and redirect to og url
 
-app.get('/api/:short', (req, res) => {
-	StURL.find({st_url: req.params.short}).then(doc => {
+app.get('/api/shorturl/:short', (req, res) => {
+	StURL.find({st_url: req.params.short})
+	.then(doc => {
 		console.log(doc);
 		res.redirect(doc[0].og_url);
 	});
@@ -87,22 +111,24 @@ app.get('/api/:short', (req, res) => {
 
 // db functions
 
-function checkAndCreate(url){
+function check(url){
 	return StURL.find({og_url: url}).then(searchResult => {
-		console.log(searchResult);
+		// console.log(searchResult);
 		if (searchResult.length === 0) {
-			return generateRandomKey().then(key => {
-				let newURL = new StURL({og_url: url, st_url: key});
-				newURL.save((err, data) => {
-					if (err) console.log(err);
-					else {
-						console.log(data);
-					}
-				});
-				return {og_url: url, st_url: key};
-			});
-		} else return searchResult[0];
+			return create(url);
+		} else return [searchResult[0], true];
 	})
+}
+
+function create(url) {
+	return generateRandomKey().then(key => {
+		let newURL = new StURL({og_url: url, st_url: key});
+		newURL.save((err, data) => {
+			if (err) return err;
+			else return data;
+		});
+		return [{og_url: url, st_url: key}, false];
+	});
 }
 
 // utility functions
