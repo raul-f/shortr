@@ -61,10 +61,14 @@ app.post('/', (req, res) => {
 app.post('/api/shorturl/new', (req, res) => {
 	let protocolRegEx = /^https?:\/\//;
 	let dnsURL = req.body.url.replace(protocolRegEx, '');
+	if (dnsURL[dnsURL.length - 1] === '/') {
+		console.log(dnsURL);
+		dnsURL = dnsURL.substring(0, dnsURL.length-1);
+	}
 	dns.lookup(dnsURL)
 	.then(data => console.log(`The lookup has been successful ${JSON.stringify(data)}`))
 	.then(empty => {
-		check(req.body.url)
+		check(dnsURL)
 		.then(result => {
 			let shorturl = {};
 			[shorturl.data, shorturl.existence] = result;
