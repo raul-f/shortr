@@ -11,6 +11,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 
 // Basic Configuration 
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -33,6 +34,7 @@ let shortenedSchema = new Schema({
 let StURL = mongoose.model('StURL', shortenedSchema);
 
 // middlewares
+
 app.use(cors());
 app.use(bodyParser.json());
 app.use('/public', express.static(process.cwd() + '/public'));
@@ -57,10 +59,8 @@ app.post('/', (req, res) => {
 });
 
 app.post('/api/shorturl/new', (req, res) => {
-	// console.log(req.body);
 	let protocolRegEx = /^https?:\/\//;
 	let dnsURL = req.body.url.replace(protocolRegEx, '');
-	//console.log(dnsURL);
 	dns.lookup(dnsURL)
 	.then(data => console.log(`The lookup has been successful ${JSON.stringify(data)}`))
 	.then(empty => {
@@ -84,28 +84,19 @@ app.post('/api/shorturl/new', (req, res) => {
 		console.log(`The lookup has returned an error: ${err}`);
 		res.json({error: 'invalid URL'});
 	});
-	/*
-	*/
-	/*
-	StURL.find({og_url: req.body.url}, (err, data) => {
-		if (err) {
-			console.log(err);
-			return;
-		} else {
-			return data;
-		};
-	})
-	*/
-	// res.json({resp:`request to ${req.url} successfully processed.`});
 });
 
 // receive shorturl and redirect to og url
 
 app.get('/api/shorturl/:short', (req, res) => {
+	let protocolRegEx = /^https?:\/\//;
 	StURL.find({st_url: req.params.short})
 	.then(doc => {
-		console.log(doc);
-		res.redirect(doc[0].og_url);
+		if (protocolRegEx.test(doc[0].og_url)) {
+			res.redirect(doc[0].og_url);
+		} else {
+			res.redirect('http://'+ doc[0].og_url);
+		}
 	});
 });
 
