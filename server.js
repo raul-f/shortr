@@ -16,7 +16,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 dotenv.config();
-mongoose.connect(process.env.MONGO_URI, {useMongoClient: true});
+mongoose.connect(process.env.MONGO_URI, {useNewUrlParser: true});
 dns.lookup('google.com', (error, address, family) => {
 	if (error) console.log(error);
 	else console.log('address: %j family: IPv%s', address, family);
