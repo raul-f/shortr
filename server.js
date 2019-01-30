@@ -69,6 +69,7 @@ app.post("/api/shorturl/new", (req, res) => {
         console.log(req.body)
         let dnsURL = req.body.url.replace(protocolRegEx, "")
         dnsURL = dnsURL.replace(helpRegex, "")
+        let url = req.body.url.replace(protocolRegEx, "")
         dns.lookup(dnsURL)
             .then(data =>
                 console.log(
@@ -76,7 +77,7 @@ app.post("/api/shorturl/new", (req, res) => {
                 )
             )
             .then(empty => {
-                check(req.body.url).then(result => {
+                check(url).then(result => {
                     let shorturl = {}
                     ;[shorturl.data, shorturl.existence] = result
                     console.log(
@@ -119,7 +120,7 @@ app.get("/:short", (req, res) => {
     console.log(req.url)
     StURL.find({ st_url: req.params.short }).then(doc => {
         if (doc.length) {
-            res.redirect(doc[0].og_url)
+            res.redirect(`https://${doc[0].og_url}`)
         } else {
             res.send({ error: "short url provided has no associated address" })
         }
